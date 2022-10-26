@@ -1,7 +1,11 @@
 import sys
-from crazydrone import *
-from riot import *
+from drone.crazydrone import find_available_drones, CrazyDrone
+from riot import Riot
 from PyQt5.QtCore import QCoreApplication
+
+'''
+This example uses rotation on the X axis to make the drone move forward or backward
+'''
 
 app = QCoreApplication([])
 riot_id = 0
@@ -19,7 +23,7 @@ if len(available) > 0:
     def process_gyro(gx, gy, gz):
         speed = 0
         if abs(gx) > 0.3:
-            speed = gx / 2.003
+            speed = gx / 2.00
         drone.process_motion(0, 0, speed, 0)
 
 
