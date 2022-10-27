@@ -27,7 +27,7 @@ if len(available) > 0:
         global state
         print("state", state)
         if drone.motion_commander is not None:
-            norm, x, y, z = riot.intensity(_x, _y, _z)
+            norm, x, y, z = riot.acc_intensity(_x, _y, _z)
 
             if state == 0:
                 if not drone.motion_commander._is_flying and norm > 1:
@@ -57,13 +57,14 @@ if len(available) > 0:
                     drone.process_motion(up_speed, 0, 0, 0)
 
 
-    def start_control():
-        print('connected to drones')
-        app.aboutToQuit.connect(drone.land)
-        riot.acc.connect(process_acc)
+    def start_control(status):
+        if status == "on":
+            print('connected to drones')
+            riot.acc.connect(process_acc)
 
 
     drone.connection.connect(start_control)
 
 app.aboutToQuit.connect(riot.stop)
+app.aboutToQuit.connect(drone.land)
 sys.exit(app.exec_())

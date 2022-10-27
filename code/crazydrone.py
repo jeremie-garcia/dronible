@@ -2,12 +2,13 @@ import os
 import sys
 
 import cflib.crtp
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QPushButton
 from cflib.crazyflie import Crazyflie
 from cflib.crazyflie.log import LogConfig
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils.multiranger import Multiranger
 
-from drone.drone import *
+from drone.drone import Drone
 
 cflib.crtp.init_drivers(enable_debug_driver=False)
 
@@ -49,6 +50,9 @@ class CrazyDrone(Drone):
 
         # Variable used to keep main loop occupied until disconnect
         self.is_connected = True
+
+    def init(self):
+        pass
 
     def _connected(self, link_uri):
         """ This callback is called form the Crazyflie API when a Crazyflie
@@ -130,29 +134,35 @@ class CrazyDrone(Drone):
             velocity_y = - _right * self.max_horiz_speed
             # print("PRE", velocity_x, velocity_y, velocity_z, velocity_yaw)
 
-            # protect against collision by reducing speed depending on distance
-            ranger = self.multiranger
-
-            if ranger.front and ranger.front < ANTI_COLLISION_DISTANCE and velocity_x > 0:
-                velocity_x = velocity_x * (ranger.front - ANTI_COLLISION_MIN_DIST) / ANTI_COLLISION_DISTANCE
-                velocity_x = max(0, velocity_x)
-
-            if ranger.back and ranger.back < ANTI_COLLISION_DISTANCE and velocity_x < 0:
-                velocity_x = velocity_x * (ranger.back - ANTI_COLLISION_MIN_DIST) / ANTI_COLLISION_DISTANCE
-                velocity_x = min(0, velocity_x)
-
-            if ranger.left and ranger.left < ANTI_COLLISION_DISTANCE and velocity_y > 0:
-                velocity_y = velocity_y * (ranger.left - ANTI_COLLISION_MIN_DIST) / ANTI_COLLISION_DISTANCE
-                velocity_y = max(0, velocity_y)
-
-            if ranger.right and ranger.right < ANTI_COLLISION_DISTANCE and velocity_y < 0:
-                velocity_y = velocity_y * (ranger.left - ANTI_COLLISION_MIN_DIST) / ANTI_COLLISION_DISTANCE
-                velocity_y = min(0, velocity_y)
-
-            if ranger.up and ranger.up < ANTI_COLLISION_DISTANCE and velocity_z > 0:
-                velocity_z = velocity_z * (ranger.up - ANTI_COLLISION_MIN_DIST) / ANTI_COLLISION_DISTANCE
-                velocity_z = max(0, velocity_z)
-
             # print("POST", velocity_x, velocity_y, velocity_z, velocity_yaw)
             if self.motion_commander._is_flying:
                 self.motion_commander._set_vel_setpoint(velocity_x, velocity_y, velocity_z, velocity_yaw)
+
+
+if __name__ == "__main__":
+    app = QApplication([])
+
+    available = find_available_drones()
+    print(str(available[0][0]))
+    print('availables crazyflies', str(available))
+
+    if len(available) > 0:
+        drone = CrazyDrone(available[0][0])
+
+    start_button = QPushButton("take off")
+    stp_button = QPushButton("Land")
+    start_button.clicked.connect(drone.take_off)
+    stp_button.clicked.connect(drone.land)
+    widget = QWidget()
+    layout = QHBoxLayout()
+    widget.setLayout(layout)
+    layout.addWidget(start_button)
+    layout.addWidget(stp_button)
+    drone.batteryValue.connect(lambda status: print('batt', status))
+    drone.is_flying_signal.connect(lambda status: print('flying?', status))
+    drone.connection.connect(lambda status: print('connection', status))
+    drone.init()
+
+    widget.show()
+    sys.exit(app.exec_())
+    drone.stop()

@@ -1,12 +1,5 @@
 from PyQt5.QtCore import pyqtSignal, QObject
 
-ANTI_COLLISION_MIN_DIST = 0.20  # meters
-ANTI_COLLISION_DISTANCE = 1  # meters
-
-
-def find_available_drones():
-    raise NotImplementedError
-
 
 class Drone(QObject):
     connection = pyqtSignal(str) #value: 'on', 'off'
