@@ -4,9 +4,9 @@ import sys
 from threading import Thread
 
 from PyQt5.QtCore import pyqtSignal
-from PyQt5.QtWidgets import QApplication, QPushButton
+from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QHBoxLayout
 
-from drone.drone import Drone
+from drone import Drone
 
 INTERVAL = 1
 
@@ -17,6 +17,7 @@ def clamp(x):
 
 class TelloDrone(Drone):
     tempValue = pyqtSignal(int)  # value: 'between 0 and 100'
+    heightValue = pyqtSignal(int)  # the height in cm
 
     def __init__(self):
         super().__init__()
@@ -52,15 +53,18 @@ class TelloDrone(Drone):
         self._is_flying = False
         self.prev_cmd = ""
 
+        self.height = 0
+
 
     def send_command(self, cmd):
-        #print(cmd,"cmd sent to tello")
         self.cmd_sock.sendto(cmd.encode(encoding="utf-8"), self.tello_address)
 
     def init(self):
+        print("Drone init started")
         self.cmd_state = "cmd"
         self.connection.emit("off")
         self.send_command('command')
+
 
     def take_off(self):
         if not self.is_flying():
@@ -87,7 +91,6 @@ class TelloDrone(Drone):
                 self.cmd_response = rep.decode('utf8')
                 if self.cmd_response == 'ok':
                     if self.cmd_state == 'cmd':
-                        print('tello connected')
                         self.connection.emit('on')
                     if self.cmd_state == 'takeoff':
                         self._is_flying = True
@@ -95,7 +98,6 @@ class TelloDrone(Drone):
                     if self.cmd_state == 'land':
                         self._is_flying = False
                         self.is_flying_signal.emit(False)
-
                     print("command", self.cmd_state, "ACK")
                 else:
                     print("command,", self.cmd_state, 'error', self.cmd_response)
@@ -113,16 +115,21 @@ class TelloDrone(Drone):
                 rep, ip = self.state_sock.recvfrom(1024)
                 self.state_response = rep.decode('utf8')
 
-                #temp = re.search(r"temph:(\d*)", self.state_response).group()[6:]
-                #self.tempValue.emit(int(temp))  # hack...
-                #print("temperature", temp)
+                temp = re.search(r"temph:(\d*)", self.state_response).group()[6:]
+                self.tempValue.emit(int(temp))
                 bat = re.search(r"bat:(\d*)", self.state_response).group()[4:]
                 self.batteryValue.emit(int(bat) * 0.043)  # hack...
+                height = re.search(r";h:(\d*)", self.state_response).group()[3:]
+                self.heightValue.emit(int(height))
+                self.height = height
             except socket.error as exc:
                 print("CMD ERROR: %s" % exc)
 
     def is_flying(self):
         return self._is_flying
+
+    def height(self):
+        return self.height
 
     def process_motion(self, _up, _rotate, _front, _right):
         '''
@@ -135,7 +142,6 @@ class TelloDrone(Drone):
             velocity_front_back = clamp(_front * 50 * self.max_horiz_speed)
             velocity_left_right = clamp(_right * 50 * self.max_horiz_speed)
             cmd = f"rc {velocity_left_right} {velocity_front_back} {velocity_up_down} {velocity_yaw}"
-            #print("TELLO:", cmd)
             self.cmd_state = "rc"
             self.send_command(cmd)
 
@@ -143,15 +149,21 @@ class TelloDrone(Drone):
 if __name__ == "__main__":
     app = QApplication([])
     tello = TelloDrone()
-    button = QPushButton("start")
-    stp_button = QPushButton("stop")
-    button.clicked.connect(tello.take_off)
+    start_button = QPushButton("take off")
+    stp_button = QPushButton("Land")
+    start_button.clicked.connect(tello.take_off)
     stp_button.clicked.connect(tello.land)
-    button.show()
-    stp_button.show()
+    widget = QWidget()
+    layout = QHBoxLayout()
+    widget.setLayout(layout)
+    layout.addWidget(start_button)
+    layout.addWidget(stp_button)
     tello.batteryValue.connect(lambda status: print('batt', status))
     tello.is_flying_signal.connect(lambda status: print('flying?', status))
     tello.connection.connect(lambda status: print('connection', status))
+    tello.heightValue.connect(lambda alt: print('altitude', alt))
     tello.init()
+
+    widget.show()
     sys.exit(app.exec_())
     tello.stop()

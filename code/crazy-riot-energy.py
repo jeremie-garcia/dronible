@@ -30,7 +30,7 @@ if len(available) > 0:
             norm, x, y, z = riot.intensity(_x, _y, _z)
 
             if state == 0:
-                if not drone.motion_commander._is_flying and norm > 100:
+                if not drone.motion_commander._is_flying and norm > 1:
                     state = 1
                     drone.take_off()
 
@@ -41,10 +41,10 @@ if len(available) > 0:
 
             elif state == 2:
                 up_speed = 0
-                # range of norm is between 0 and 300
+                # range of norm is between 0 and 5
                 v_min = -0.1
                 v_max = 1
-                up_speed = (norm / 300) * (v_max - v_min) + v_min
+                up_speed = (norm / 5) * (v_max - v_min) + v_min
                 up_speed = max(min(up_speed, v_max), v_min)
                 print(up_speed)
 

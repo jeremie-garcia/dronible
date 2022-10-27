@@ -32,7 +32,10 @@ class Riot(QObject):
         self.osc = OSCThreadServer()
         self.sock = None
         self.riot_id = id
-        self.prev_acc = self.prev_spin = [0,0,0]
+        self.prev_acc = [0, 0, 0]
+        self.prev_acc_norm = [0, 0, 0]
+        self.prev_spin = [0, 0, 0]
+        self.prev_spin_norm = [0, 0, 0]
 
     def OSCcallback(self, *args):
         self.acc.emit(args[0], args[1], args[2])
@@ -46,7 +49,7 @@ class Riot(QObject):
 
     def start(self):
         try:
-            port = 8888 + self.riot_id
+            port = 8888
             self.sock = self.osc.listen(address='0.0.0.0', port=port, default=True)
             address = '/' + str(self.riot_id) + '/raw'
             self.osc.bind(address.encode(), self.OSCcallback)
@@ -69,9 +72,14 @@ class Riot(QObject):
         self.prev_acc[1] = _y
         self.prev_acc[2] = _z
 
-        x_norm = (avrg_x * avrg_x)
-        y_norm = (avrg_y * avrg_y)
-        z_norm = (avrg_z * avrg_z)
+        x_norm = (avrg_x * avrg_x) + 0.8* self.prev_acc_norm[0]
+        y_norm = (avrg_y * avrg_y) + 0.8* self.prev_acc_norm[2]
+        z_norm = (avrg_z * avrg_z) + 0.8* self.prev_acc_norm[2]
+
+        # stor the previous values
+        self.prev_acc_norm[0] = x_norm
+        self.prev_acc_norm[1] = y_norm
+        self.prev_acc_norm[2] = z_norm
 
         norm = x_norm + y_norm + z_norm
         return norm, x_norm, y_norm, z_norm
@@ -104,7 +112,7 @@ if __name__ == "__main__":
     from PyQt5.QtCore import QCoreApplication
 
     app = QCoreApplication([])
-    riot_id = 0
+    riot_id = 3
     print('creating riot')
     riot = Riot(riot_id)
     riot.start()
@@ -146,7 +154,7 @@ if __name__ == "__main__":
 
 
     #uncomment to see the data
-    #riot.acc.connect(process_acc)
+    riot.acc.connect(process_acc)
     #riot.gyro.connect(process_gyro)
     #riot.mag.connect(process_mag)
     #riot.tmp.connect(process_tmp)
