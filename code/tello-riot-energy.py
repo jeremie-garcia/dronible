@@ -1,4 +1,4 @@
-from drone.tello import TelloDrone
+from tello import TelloDrone
 from riot import Riot
 from PyQt5.QtCore import QCoreApplication
 import sys

@@ -8,7 +8,7 @@ from cflib.crazyflie.log import LogConfig
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils.multiranger import Multiranger
 
-from drone.drone import Drone
+from drone import Drone
 
 cflib.crtp.init_drivers(enable_debug_driver=False)
 

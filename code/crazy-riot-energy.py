@@ -1,4 +1,4 @@
-from drone import crazydrone
+import crazydrone
 from riot import Riot
 from PyQt5.QtCore import QCoreApplication
 import sys
@@ -23,14 +23,13 @@ if len(available) > 0:
     drone = crazydrone.CrazyDrone(available[0][0])
 
 
-    def process_acc(_x, _y, _z):
+    def process_acceleration_intensity(_intensity, _x,_y,_z):
         global state
         print("state", state)
         if drone.motion_commander is not None:
-            norm, x, y, z = riot.acc_intensity(_x, _y, _z)
 
             if state == 0:
-                if not drone.motion_commander._is_flying and norm > 1:
+                if not drone.motion_commander._is_flying and _intensity > 1:
                     state = 1
                     drone.take_off()
 
@@ -44,7 +43,7 @@ if len(available) > 0:
                 # range of norm is between 0 and 5
                 v_min = -0.1
                 v_max = 1
-                up_speed = (norm / 5) * (v_max - v_min) + v_min
+                up_speed = (_intensity / 2) * (v_max - v_min) + v_min
                 up_speed = max(min(up_speed, v_max), v_min)
                 print(up_speed)
 
@@ -60,7 +59,7 @@ if len(available) > 0:
     def start_control(status):
         if status == "on":
             print('connected to drones')
-            riot.acc.connect(process_acc)
+            riot.acc.connect(process_acceleration_intensity)
 
 
     drone.connection.connect(start_control)
