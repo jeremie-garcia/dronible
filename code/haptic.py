@@ -19,7 +19,7 @@ class Haptic:
 
         self.cont_snd = QSoundEffect()
         self.cont_snd.setSource(QUrl.fromLocalFile('./sounds/beep.wav'))
-        self.cont_snd.setVolume(1)
+        self.cont_snd.setVolume(0)
         self.cont_snd.setLoopCount(QSoundEffect.Infinite)
 
     def fade_in(self):
