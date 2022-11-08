@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QApplication, QPushButton, QWidget, QHBoxLayout
 
 from crazydrone import find_available_drones, CrazyDrone
+from haptic import Haptic
 from riot import Riot
 import sys
 
 """
-This examples demonstrates how to make the drone rotates if the sensor is thrown into the air
+This examples demonstrates how to make the drone fly and use acceleration for vertical speed
+The acceleration also controls the haptic feedback intensity
 """
 
 app = QApplication([])
@@ -13,6 +15,8 @@ app = QApplication([])
 # create the Riot sensor - CHANGE THE ID
 riot_id = 1  # Make it the correct one
 riot = Riot(riot_id)
+
+haptic = Haptic()
 
 # look for the drone
 available = find_available_drones()
@@ -41,24 +45,36 @@ if len(available) > 0:
 
 
     # listen to data from the riot
-    def process_freefall(_acc, _falling, _duration):
-        v_min = 0
+    def process_acceleration_intensity(_intensity, _x, _y, _z):
+
+        # intensity is between O and 2 approx
+        v_min = -0.1
         v_max = 1
-        angular_speed = (_falling / 2) * (v_max - v_min) + v_min
-        angular_speed = max(min(angular_speed, v_max), v_min)
-        print(angular_speed)
+
+        up_speed = (_intensity / 2) * (v_max - v_min) + v_min
+        up_speed = max(min(up_speed, v_max), v_min)
+        print("Up Speed from acceletation", up_speed)
 
         if drone.motion_commander is not None:  # test if the drone is ready to take orders :)
-            # intensity is between O and 2 approx
-
+            # make the drone land if too low
             if drone.motion_commander._is_flying:
-                drone.process_motion(0, angular_speed, 0, 0)
+                height = drone.motion_commander._thread.get_height()
+                print(height)
+                if up_speed < 0 and height < 0.1:
+                    state = 0
+                    drone.land()
+                else:
+                    drone.process_motion(up_speed, 0, 0, 0)
+                    haptic.set_continuous_level(_intensity/2)
 
 
-    riot.freefall.connect(process_freefall)
+    riot.acc_intensity.connect(process_acceleration_intensity)
     riot.start()
+    haptic.start_continuous()
+    haptic.stop_continuous()
     app.aboutToQuit.connect(riot.stop)
     app.aboutToQuit.connect(drone.stop)
+    app.aboutToQuit.connect(haptic.stop_continuous)
 
 else:
     print("No drone found")
