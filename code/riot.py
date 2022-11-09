@@ -397,7 +397,7 @@ if __name__ == "__main__":
     # riot.kick.connect(print_kick)
     # riot.shake.connect(print)
     # riot.spin.connect(print_spinning)
-    # riot.still.connect(lambda _still, _slide: print("Still?", _still, "slide", _slide))
+    riot.still.connect(lambda _still, _slide: print("Still?", _still, "slide", _slide))
 
     riot.start()
 
