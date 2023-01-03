@@ -6,7 +6,7 @@ if __name__ == "__main__":
     from PyQt5.QtCore import QCoreApplication
 
     app = QCoreApplication([])
-    riot_id = 1
+    riot_id = 2
     print('creating riot')
     riot = Riot(riot_id)
     haptic = Haptic()
